@@ -1,14 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 st.set_page_config(
     page_title="Loan Default Prediction Dashboard",
@@ -17,233 +12,107 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #f8f9fa;
-        color: #212529;
-    }
-    .css-1d391kg, .css-1lcbmhc {
-        background-color: #ffffff;
-    }
-    .metric-card {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        text-align: center;
-        border: 1px solid #e9ecef;
-    }
-    h1, h2, h3 {
-        color: #343a40;
-    }
-</style>
-""", unsafe_allow_html=True)
 
-@st.cache_data
-def load_data():
-    df = pd.read_csv('loan_data.csv')
-    df = df.dropna()
-    
-    for col in ['person_age', 'person_income', 'person_emp_exp']:
-        cap = df[col].quantile(0.99)
-        df = df[df[col] <= cap]
-        
-    df['previous_loan_defaults_on_file'] = df['previous_loan_defaults_on_file'].map({'Yes': 1, 'No': 0})
-    df['person_gender'] = df['person_gender'].map({'male': 1, 'female': 0})
-    
-    return df
 
-@st.cache_resource
-def train_models(df):
-    X = df.drop(columns=['loan_status'])
-    y = df['loan_status']
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-    
-    education_order = [['High School', 'Associate', 'Bachelor', 'Master', 'Doctorate']]
-    ordinal_features = ['person_education']
-    nominal_features = ['person_home_ownership', 'loan_intent']
-    numeric_features = [
-        'person_age', 'person_income', 'person_emp_exp',
-        'loan_amnt', 'loan_int_rate', 'loan_percent_income',
-        'cb_person_cred_hist_length', 'credit_score',
-        'previous_loan_defaults_on_file', 'person_gender'
-    ]
-    
-    lr_preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), numeric_features),
-            ('ordinal', OrdinalEncoder(categories=education_order), ordinal_features),
-            ('nominal', OneHotEncoder(drop='first', sparse_output=False), nominal_features),
-        ],
-        remainder='drop'
-    )
-    
-    lr_pipeline = Pipeline(steps=[
-        ('preprocessor', lr_preprocessor),
-        ('classifier', LogisticRegression(
-            solver='saga',
-            max_iter=2000,
-            class_weight='balanced',
-            C=1.0,
-            random_state=42,
-            n_jobs=-1
-        ))
-    ])
-    
-    dt_preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', 'passthrough', numeric_features),
-            ('ordinal', OrdinalEncoder(categories=education_order), ordinal_features),
-            ('nominal', OneHotEncoder(drop='first', sparse_output=False), nominal_features),
-        ],
-        remainder='drop'
-    )
-    
-    dt_pipeline = Pipeline(steps=[
-        ('preprocessor', dt_preprocessor),
-        ('classifier', DecisionTreeClassifier(
-            max_depth=8,
-            min_samples_leaf=10,
-            criterion='gini',
-            class_weight='balanced',
-            random_state=42
-        ))
-    ])
-    
-    rf_pipeline = Pipeline(steps=[
-        ('preprocessor', dt_preprocessor),
-        ('classifier', RandomForestClassifier(
-            n_estimators=100,
-            max_depth=8,
-            min_samples_leaf=10,
-            class_weight='balanced',
-            random_state=42,
-            n_jobs=-1
-        ))
-    ])
-    
-    lr_pipeline.fit(X_train, y_train)
-    dt_pipeline.fit(X_train, y_train)
-    rf_pipeline.fit(X_train, y_train)
-    
-    return lr_pipeline, dt_pipeline, rf_pipeline, X_train, X_test, y_train, y_test
+from preprocessing import load_and_clean_data, preprocess_features
+import models.logistic_regression as lr_module
+import models.decision_tree as dt_module
+import models.random_forest as rf_module
 
-def get_feature_contributions(model, X_input, is_lr=True):
-    """Calculate feature contributions for the given model and input."""
-    if is_lr:
-        preprocessor = model.named_steps['preprocessor']
-        clf = model.named_steps['classifier']
-        
-        numeric_features = [
-            'person_age', 'person_income', 'person_emp_exp',
-            'loan_amnt', 'loan_int_rate', 'loan_percent_income',
-            'cb_person_cred_hist_length', 'credit_score',
-            'previous_loan_defaults_on_file', 'person_gender'
-        ]
-        ordinal_features = ['person_education']
-        nominal_features = ['person_home_ownership', 'loan_intent']
-        
-        ohe_feature_names = preprocessor.named_transformers_['nominal'].get_feature_names_out(nominal_features).tolist()
-        feature_names = numeric_features + ordinal_features + ohe_feature_names
-        
-        coefs = clf.coef_[0]
-        X_processed = preprocessor.transform(X_input)[0]
-        
-        contributions = [(feature_names[i], X_processed[i] * coefs[i]) for i in range(len(feature_names))]
-        contributions.sort(key=lambda x: abs(x[1]), reverse=True)
-        return contributions[:5]
-    else:
-        clf = model.named_steps['classifier']
-        
-        numeric_features = [
-            'person_age', 'person_income', 'person_emp_exp',
-            'loan_amnt', 'loan_int_rate', 'loan_percent_income',
-            'cb_person_cred_hist_length', 'credit_score',
-            'previous_loan_defaults_on_file', 'person_gender'
-        ]
-        ordinal_features = ['person_education']
-        nominal_features = ['person_home_ownership', 'loan_intent']
-        
-        preprocessor = model.named_steps['preprocessor']
-        ohe_feature_names = preprocessor.named_transformers_['nominal'].get_feature_names_out(nominal_features).tolist()
-        feature_names = numeric_features + ordinal_features + ohe_feature_names
-        
-        importances = clf.feature_importances_
-        important_features = [(feature_names[i], importances[i]) for i in range(len(feature_names))]
-        important_features.sort(key=lambda x: x[1], reverse=True)
-        return important_features[:5]
+
+df = load_and_clean_data('loan_data.csv')
+
+with st.spinner("Training models... please wait..."):
+    lr_model, lr_scaler, lr_features, lr_X_train, lr_X_test, lr_y_train, lr_y_test = lr_module.train(df)
+    dt_model, dt_features, dt_X_train, dt_X_test, dt_y_train, dt_y_test = dt_module.train(df)
+    rf_model, rf_features, rf_X_train, rf_X_test, rf_y_train, rf_y_test = rf_module.train(df)
+
 
 def main():
+    """Main function that runs the Streamlit dashboard"""
+
     st.title("Loan Default Evaluation System")
-    
+
     with st.expander("What is Default Risk?"):
         st.write("""
-        **Default Risk** is the probability that an applicant will fail to repay their loan according to the agreed-upon terms. 
+        **Default Risk** is the chance that a borrower will not repay their loan.
         
-        Our machine learning models analyze historical data and the applicant's current financial profile to estimate this probability.
-        - **Low Risk** (< 40%): The applicant has a strong profile and is highly likely to repay the loan.
-        - **Medium Risk** (40% - 60%): The applicant presents some risk factors that require closer human review or conditional approval terms.
-        - **High Risk** (> 60%): The applicant's profile closely matches historical defaults and should likely be declined.
+        Our models analyze the applicant's profile and estimate this probability:
+        - **Low Risk** (below 40%): Applicant is likely to repay.
+        - **Medium Risk** (40% to 60%): Needs closer review.
+        - **High Risk** (above 60%): Applicant may not repay.
         """)
-        
-    st.markdown("Enter applicant details to predict likelihood of loan default using advanced machine learning models.")
-    
-    with st.spinner("Initializing models and processing data (this may take a moment)..."):
-        df = load_data()
-        lr_model, dt_model, rf_model, X_train, X_test, y_train, y_test = train_models(df)
-        
+
+    st.markdown("Enter applicant details below to predict their loan default risk.")
+
     st.sidebar.header("Configuration")
-    selected_model = st.sidebar.selectbox(
+    selected_model_name = st.sidebar.selectbox(
         "Select Prediction Model",
         options=["Logistic Regression", "Decision Tree", "Random Forest"]
     )
-    
-    if selected_model == "Logistic Regression":
+
+    if selected_model_name == "Logistic Regression":
         model = lr_model
-    elif selected_model == "Decision Tree":
+        scaler = lr_scaler
+        feature_names = lr_features
+        X_test = lr_X_test
+        y_test = lr_y_test
+    elif selected_model_name == "Decision Tree":
         model = dt_model
+        scaler = None
+        feature_names = dt_features
+        X_test = dt_X_test
+        y_test = dt_y_test
     else:
         model = rf_model
-    is_lr = selected_model == "Logistic Regression"
-    
-    st.sidebar.markdown("---")
-    st.sidebar.header("System Metrics")
-    st.sidebar.info(f"Active Model: {selected_model}")
-    
-    threshold_low_med = 0.40
-    threshold_med_high = 0.60
-    
-    y_prob = model.predict_proba(X_test)[:, 1]
-    y_pred = (y_prob >= threshold_med_high).astype(int) # Standard acc usually at 0.5, but we show custom metrics
-    
-    acc = accuracy_score(y_test, (y_prob >= 0.5).astype(int))
-    auc = roc_auc_score(y_test, y_prob)
-    
-    st.sidebar.metric("Test Accuracy", f"{acc:.2%}")
-    st.sidebar.metric("ROC AUC", f"{auc:.4f}")
-    
-    st.sidebar.markdown("---")
-    st.sidebar.header("Model Insights")
-    if is_lr:
-        st.sidebar.write("Logistic Regression relies heavily on linear combinations. It tightly correlates specific factors like Renting and Loan-to-Income ratios directly to risk.")
-    elif selected_model == "Decision Tree":
-        st.sidebar.write("Decision Trees look for non-linear patterns. They can identify that a Renter with high income and no prior defaults is actually very safe.")
+        scaler = None
+        feature_names = rf_features
+        X_test = rf_X_test
+        y_test = rf_y_test
+
+    if scaler is not None:
+        X_test_scaled = scaler.transform(X_test)
     else:
-        st.sidebar.write("Random Forests average the predictions of many Decision Trees. This reduces overfitting and typically provides the most robust predictions on unfamiliar data.")
-    
+        X_test_scaled = X_test
+
+    y_prob = model.predict_proba(X_test_scaled)[:, 1]
+
+    y_pred = []
+    for p in y_prob:
+        if p >= 0.5:
+            y_pred.append(1)
+        else:
+            y_pred.append(0)
+
+    acc = accuracy_score(y_test, y_pred)
+    auc = roc_auc_score(y_test, y_prob)
+
+    st.sidebar.markdown("---")
+    st.sidebar.header("Model Performance")
+    st.sidebar.info("Active Model: " + selected_model_name)
+    st.sidebar.metric("Test Accuracy", str(round(acc * 100, 2)) + "%")
+    st.sidebar.metric("ROC AUC Score", str(round(auc, 4)))
+
+    st.sidebar.markdown("---")
+    st.sidebar.header("About This Model")
+    if selected_model_name == "Logistic Regression":
+        st.sidebar.write("Logistic Regression is a simple linear model. It finds which factors like income and credit score are most related to default risk.")
+    elif selected_model_name == "Decision Tree":
+        st.sidebar.write("Decision Tree splits the data step by step based on feature values to make predictions. It can find non-linear patterns.")
+    else:
+        st.sidebar.write("Random Forest uses 100 Decision Trees together. Combining many trees gives more stable and accurate results.")
+
     tab1, tab2 = st.tabs(["Prediction Dashboard", "Model Analytics"])
-    
+
     with tab1:
-        col_inputs, col_analysis = st.columns([1.5, 1])
-        
+        col_inputs, col_results = st.columns([1.5, 1])
+
         with col_inputs:
             st.header("Applicant Information")
-            
+
             with st.form("prediction_form"):
                 col_a, col_b = st.columns(2)
-                
+
                 with col_a:
                     age = st.number_input("Age", min_value=18, max_value=100, value=30)
                     gender = st.selectbox("Gender", ["male", "female"])
@@ -251,7 +120,7 @@ def main():
                     emp_len = st.number_input("Employment Experience (Years)", min_value=0, max_value=50, value=5)
                     education = st.selectbox("Education Level", ['High School', 'Associate', 'Bachelor', 'Master', 'Doctorate'])
                     home_ownership = st.selectbox("Home Ownership", df['person_home_ownership'].unique())
-                    
+
                 with col_b:
                     loan_amnt = st.number_input("Loan Amount ($)", min_value=100, value=10000, step=500)
                     loan_intent = st.selectbox("Loan Intent", df['loan_intent'].unique())
@@ -259,16 +128,28 @@ def main():
                     cred_hist_length = st.number_input("Credit History Length (Years)", min_value=0, max_value=50, value=5)
                     credit_score = st.number_input("Credit Score", min_value=300, max_value=850, value=650)
                     prev_defaults = st.selectbox("Previous Defaults", ["No", "Yes"])
-                    
+
                 submit = st.form_submit_button("Predict Default Risk", type="primary", use_container_width=True)
 
-        with col_analysis:
-            st.header("Analysis & Results")
-            
+        with col_results:
+            st.header("Results")
+
             if submit:
+                loan_to_income = loan_amnt / max(1, income)
+
+                if gender == "male":
+                    gender_value = 1
+                else:
+                    gender_value = 0
+
+                if prev_defaults == "Yes":
+                    default_value = 1
+                else:
+                    default_value = 0
+
                 input_data = pd.DataFrame({
                     'person_age': [age],
-                    'person_gender': [1 if gender == "male" else 0],
+                    'person_gender': [gender_value],
                     'person_education': [education],
                     'person_income': [income],
                     'person_emp_exp': [emp_len],
@@ -276,78 +157,123 @@ def main():
                     'loan_amnt': [loan_amnt],
                     'loan_intent': [loan_intent],
                     'loan_int_rate': [loan_int_rate],
-                    'loan_percent_income': [loan_amnt / max(1, income)],
+                    'loan_percent_income': [loan_to_income],
                     'cb_person_cred_hist_length': [cred_hist_length],
                     'credit_score': [credit_score],
-                    'previous_loan_defaults_on_file': [1 if prev_defaults == "Yes" else 0]
+                    'previous_loan_defaults_on_file': [default_value]
                 })
-                
-                prob = model.predict_proba(input_data)[0][1]
-                
-                st.metric("Probability of Default", f"{prob:.1%}")
-                
-                if prob >= threshold_med_high:
+
+                input_processed = preprocess_features(input_data)
+
+                for col in feature_names:
+                    if col not in input_processed.columns:
+                        input_processed[col] = 0
+
+                input_processed = input_processed[feature_names]
+
+                if scaler is not None:
+                    input_for_pred = scaler.transform(input_processed)
+                else:
+                    input_for_pred = input_processed
+
+                prob = model.predict_proba(input_for_pred)[0][1]
+
+                st.metric("Probability of Default", str(round(prob * 100, 1)) + "%")
+
+                if prob >= 0.60:
                     st.error("HIGH RISK OF DEFAULT")
-                    st.write("**Action:** Scrutinize application further or decline.")
-                elif prob >= threshold_low_med:
+                    st.write("**Action:** Look at this application more carefully or decline it.")
+                elif prob >= 0.40:
                     st.warning("MEDIUM RISK OF DEFAULT")
-                    st.write("**Action:** Requires manual review. Consider conditional terms or higher interest rates to offset risk.")
+                    st.write("**Action:** Needs manual review. Consider adding conditions.")
                 else:
                     st.success("LOW RISK OF DEFAULT")
-                    st.write("**Action:** Approve conditionally based on general underwriting policy.")
+                    st.write("**Action:** Approve based on standard policy.")
 
                 st.markdown("---")
-                st.subheader("Model Decision Drivers")
-                
-                contributions = get_feature_contributions(model, input_data, is_lr)
-                
-                st.write(f"Top 5 key factors influencing the **{selected_model}** model for this specific applicant:")
-                for i, (feat, val) in enumerate(contributions):
-                    clean_feat = feat.replace("person_", "").replace("loan_", "").replace("_", " ").title()
-                    if is_lr:
-                        direction = "Increased Risk" if val > 0 else "Decreased Risk"
-                        st.markdown(f"{i+1}. **{clean_feat}** ({direction})")
-                    else:
-                        st.markdown(f"{i+1}. **{clean_feat}** (Relative Importance: {val:.2f})")
-                        
+                st.subheader("Top Factors")
+
+                if selected_model_name == "Logistic Regression":
+                    coefficients = model.coef_[0]
+                    feature_importance = []
+                    for i in range(len(feature_names)):
+                        name = feature_names[i]
+                        coef = coefficients[i]
+                        feature_importance.append((name, coef))
+
+                    feature_importance.sort(key=lambda x: abs(x[1]), reverse=True)
+                    top_5 = feature_importance[:5]
+
+                    st.write("Top 5 factors for " + selected_model_name + ":")
+                    for i in range(len(top_5)):
+                        name = top_5[i][0]
+                        coef = top_5[i][1]
+                        clean_name = name.replace("person_", "").replace("loan_", "").replace("_", " ").title()
+                        if coef > 0:
+                            direction = "Increases Risk"
+                        else:
+                            direction = "Decreases Risk"
+                        st.write(str(i + 1) + ". **" + clean_name + "** (" + direction + ")")
+
+                else:
+                    importances = model.feature_importances_
+                    feature_importance = []
+                    for i in range(len(feature_names)):
+                        name = feature_names[i]
+                        imp = importances[i]
+                        feature_importance.append((name, imp))
+
+                    feature_importance.sort(key=lambda x: x[1], reverse=True)
+                    top_5 = feature_importance[:5]
+
+                    st.write("Top 5 factors for " + selected_model_name + ":")
+                    for i in range(len(top_5)):
+                        name = top_5[i][0]
+                        imp = top_5[i][1]
+                        clean_name = name.replace("person_", "").replace("loan_", "").replace("_", " ").title()
+                        st.write(str(i + 1) + ". **" + clean_name + "** (Importance: " + str(round(imp, 2)) + ")")
+
     with tab2:
-        st.header(f"Model Training Analytics: {selected_model}")
-        st.write("Below are the historical performance charts generated during the model training phase from our data science notebooks.")
-        
-        
-        col_c1, col_c2 = st.columns(2)
-        
-        with col_c1:
+        st.header("Model Training Analytics: " + selected_model_name)
+        st.write("Performance charts for the selected model.")
+
+        col_chart1, col_chart2 = st.columns(2)
+
+        with col_chart1:
             st.subheader("ROC Curve")
-            from sklearn.metrics import roc_curve
-            import matplotlib.pyplot as plt
-            
-            fpr, tpr, _ = roc_curve(y_test, y_prob)
-            
+
+            fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+
             fig_roc, ax_roc = plt.subplots(figsize=(6, 4))
-            ax_roc.plot(fpr, tpr, color='#7b5ea7', lw=2.5, label=f'ROC Curve (AUC = {auc:.4f})')
-            ax_roc.plot([0, 1], [0, 1], color='#666680', linestyle='--', lw=1.2, label='Random')
-            ax_roc.fill_between(fpr, tpr, alpha=0.1, color='#7b5ea7')
+            ax_roc.plot(fpr, tpr, color='blue', linewidth=2, label='ROC Curve (AUC = ' + str(round(auc, 4)) + ')')
+            ax_roc.plot([0, 1], [0, 1], color='gray', linestyle='--', linewidth=1, label='Random Baseline')
             ax_roc.set_xlabel('False Positive Rate')
             ax_roc.set_ylabel('True Positive Rate')
+            ax_roc.set_title('ROC Curve')
             ax_roc.legend()
             ax_roc.grid(True, linestyle='--', alpha=0.7)
             st.pyplot(fig_roc)
-            
-        with col_c2:
+
+        with col_chart2:
             st.subheader("Confusion Matrix")
-            from sklearn.metrics import confusion_matrix
-            import seaborn as sns
-            
-            cm = confusion_matrix(y_test, (y_prob >= 0.5).astype(int))
+
+            cm = confusion_matrix(y_test, y_pred)
+
             fig_cm, ax_cm = plt.subplots(figsize=(6, 4))
-            sns.heatmap(cm, annot=True, fmt='d', ax=ax_cm, cmap='Purples',
-                        xticklabels=['No Default', 'Default'],
-                        yticklabels=['No Default', 'Default'])
+            sns.heatmap(
+                cm,
+                annot=True,
+                fmt='d',
+                ax=ax_cm,
+                cmap='Blues',
+                xticklabels=['No Default', 'Default'],
+                yticklabels=['No Default', 'Default']
+            )
             ax_cm.set_xlabel('Predicted Label')
             ax_cm.set_ylabel('True Label')
+            ax_cm.set_title('Confusion Matrix')
             st.pyplot(fig_cm)
-            
-            
+
+
 if __name__ == "__main__":
     main()
