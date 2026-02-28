@@ -9,8 +9,6 @@ from preprocessing import preprocess_features
 
 
 def train(df):
-    """Train a Logistic Regression model and return the results"""
-
     df = preprocess_features(df)
 
     X = df.drop(columns=['loan_status'])

@@ -8,8 +8,6 @@ from preprocessing import preprocess_features
 
 
 def train(df):
-    """Train a Decision Tree model and return the results"""
-
     df = preprocess_features(df)
 
     X = df.drop(columns=['loan_status'])

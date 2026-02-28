@@ -1,0 +1,289 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Loan Default Prediction}
+\fancyhead[R]{\small GenAI Capstone Project}
+\fancyfoot[C]{\thepage}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  backgroundcolor=\color{gray!5}
+}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  citecolor=black
+}
+
+\onehalfspacing
+
+\begin{document}
+
+% ---- Title Page ----
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\LARGE\bfseries Loan Default Prediction System}\\[0.5cm]
+  {\Large Using Machine Learning Classification Models}\\[2cm]
+
+  {\large\textbf{Intro to GenAI --- Capstone Project Report}}\\[0.5cm]
+  {\large NST Sonipat}\\[2.5cm]
+
+  {\large\textbf{Team Members}}\\[0.5cm]
+  \begin{tabular}{l l l}
+    \toprule
+    \textbf{Name} & \textbf{Roll No} & \textbf{Role} \\
+    \midrule
+    Dhanvin Vadlamudi & [Roll No] & Team Lead \\
+    [Member 2]        & [Roll No] & Team Member \\
+    Chaitanya         & [Roll No] & Team Member \\
+    [Member 4]        & [Roll No] & Team Member \\
+    \bottomrule
+  \end{tabular}
+
+  \vfill
+
+  {\large February 2026}
+
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Problem Statement}
+
+Loan defaults cause massive losses for banks. Traditional manual checks are slow and miss patterns in data. Our goal is to build a machine learning system that:
+
+\begin{itemize}[leftmargin=2cm]
+  \item Predicts the \textbf{probability of default} based on applicant profiles.
+  \item Classifies applicants into \textbf{Low}, \textbf{Medium}, and \textbf{High Risk} categories.
+  \item Compares multiple ML models and identifies the best one.
+  \item Deploys the system as a \textbf{Streamlit web application} for real-time predictions.
+\end{itemize}
+
+% ===================================================================
+\section{Data Description}
+
+We used the Loan Approval Classification dataset from Kaggle (\url{https://www.kaggle.com/datasets/taweilo/loan-approval-classification-data}), saved as \texttt{loan\_data.csv}, containing \textbf{$\sim$45,000 records} with 14 features.
+
+\begin{table}[H]
+  \centering
+  \caption{Feature Overview}
+  \begin{tabular}{l l p{7cm}}
+    \toprule
+    \textbf{Feature} & \textbf{Type} & \textbf{Description} \\
+    \midrule
+    person\_age             & Numerical   & Age of the applicant \\
+    person\_gender          & Categorical & Gender (male/female) \\
+    person\_education       & Categorical & Education level \\
+    person\_income          & Numerical   & Annual income (\$) \\
+    person\_emp\_exp        & Numerical   & Employment experience (years) \\
+    person\_home\_ownership & Categorical & Rent, Own, Mortgage, or Other \\
+    loan\_amnt              & Numerical   & Loan amount requested \\
+    loan\_intent            & Categorical & Purpose of the loan \\
+    loan\_int\_rate         & Numerical   & Interest rate (\%) \\
+    loan\_percent\_income   & Numerical   & Loan as \% of income \\
+    cb\_person\_cred\_hist\_length & Numerical & Credit history length (years) \\
+    credit\_score           & Numerical   & Credit score (300--850) \\
+    previous\_loan\_defaults\_on\_file & Categorical & Defaulted before (Yes/No) \\
+    \midrule
+    \textbf{loan\_status}   & \textbf{Target} & \textbf{1 = Default, 0 = No Default} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The dataset is \textbf{imbalanced}: 78\% No Default vs 22\% Default. This was a key challenge we had to handle.
+
+% ===================================================================
+\section{Exploratory Data Analysis (EDA)}
+
+We performed EDA in \texttt{preprocessing.ipynb} to understand the data before modelling.
+
+\textbf{Missing Values:} Dropped rows with nulls using \texttt{df.dropna()}.
+
+\textbf{Outliers:} Capped extreme values at the 99th percentile for \texttt{person\_age}, \texttt{person\_income}, and \texttt{person\_emp\_exp}.
+
+\textbf{Key Findings from Correlation Analysis:}
+\begin{itemize}[leftmargin=2cm]
+  \item \texttt{loan\_percent\_income} had the highest positive correlation with default.
+  \item \texttt{previous\_loan\_defaults\_on\_file} was strongly correlated --- past defaulters default again.
+  \item \texttt{credit\_score} and \texttt{person\_income} had negative correlations --- higher values mean lower risk.
+\end{itemize}
+
+% ===================================================================
+\section{Data Preprocessing}
+
+All preprocessing is in \texttt{preprocessing.py}:
+
+\begin{enumerate}[leftmargin=2cm]
+  \item \textbf{Cleaning}: Drop nulls, cap outliers at 99th percentile, binary-encode gender and previous defaults.
+  \item \textbf{Ordinal Encoding}: Education mapped to 0--4 (High School < Associate < Bachelor < Master < Doctorate).
+  \item \textbf{One-Hot Encoding}: \texttt{person\_home\_ownership} and \texttt{loan\_intent} via \texttt{pd.get\_dummies(drop\_first=True)}.
+  \item \textbf{Train-Test Split}: 80/20 split with \texttt{random\_state=42}.
+  \item \textbf{Feature Scaling}: \texttt{StandardScaler} applied only for Logistic Regression (tree models do not need scaling).
+\end{enumerate}
+
+% ===================================================================
+\section{Methodology}
+
+We trained three classification models, progressing from simple to advanced:
+
+\subsection{Logistic Regression (Baseline)}
+
+A linear model using the sigmoid function to output default probability. Configured with \texttt{max\_iter=1000}, \texttt{class\_weight='balanced'}, and \texttt{StandardScaler}. Chosen as our baseline because it is fast, interpretable, and gives us a reference point.
+
+\subsection{Decision Tree (Intermediate)}
+
+A non-linear model that splits data at feature thresholds to create a tree of decisions. Configured with \texttt{max\_depth=8}, \texttt{min\_samples\_leaf=10}, and \texttt{class\_weight='balanced'}. Chosen because it captures feature interactions that logistic regression cannot.
+
+\subsection{XGBoost (Best Model)}
+
+A gradient boosting algorithm that builds 200 trees sequentially, each correcting errors of the previous ones. Key parameters:
+
+\begin{itemize}[leftmargin=2cm]
+  \item \texttt{n\_estimators=200}, \texttt{max\_depth=8}, \texttt{learning\_rate=0.05}
+  \item \texttt{scale\_pos\_weight} --- auto-calculated ratio to handle class imbalance
+  \item \texttt{subsample=0.8}, \texttt{colsample\_bytree=0.8} --- regularisation to prevent overfitting
+\end{itemize}
+
+Chosen because XGBoost is the best-performing algorithm for structured/tabular datasets.
+
+% ===================================================================
+\section{Evaluation}
+
+All models were evaluated on the \textbf{test set} (20\% unseen data) using Accuracy, F1-Score, and ROC-AUC.
+
+\begin{table}[H]
+  \centering
+  \caption{Model Comparison on Test Set}
+  \label{tab:results}
+  \begin{tabular}{l c c c}
+    \toprule
+    \textbf{Model} & \textbf{Accuracy (\%)} & \textbf{F1-Score} & \textbf{ROC-AUC} \\
+    \midrule
+    Logistic Regression & 85.25 & 0.7389 & 0.9523 \\
+    Decision Tree       & 88.03 & 0.7714 & 0.9627 \\
+    \textbf{XGBoost}    & \textbf{91.27} & \textbf{0.8239} & \textbf{0.9763} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{XGBoost wins on every metric.} The 6\% accuracy jump from Logistic Regression to XGBoost shows that boosting captures complex patterns a linear model cannot. The high ROC-AUC (0.98) means the model separates defaulters from non-defaulters almost perfectly.
+
+\textbf{Top predictive features} across all models: \texttt{loan\_percent\_income}, \texttt{previous\_loan\_defaults\_on\_file}, \texttt{credit\_score}, \texttt{loan\_int\_rate}, and \texttt{person\_income}.
+
+% ===================================================================
+\section{Optimisation}
+
+Steps taken to improve model performance:
+
+\begin{enumerate}[leftmargin=2cm]
+  \item \textbf{Class Imbalance Handling}: Used \texttt{class\_weight='balanced'} (LR, DT) and \texttt{scale\_pos\_weight} (XGBoost) to give more importance to the minority default class.
+  \item \textbf{Hyperparameter Tuning}: Experimented with \texttt{max\_depth} (5, 6, 8, 10), \texttt{learning\_rate} (0.01, 0.05, 0.1, 0.3), and \texttt{min\_samples\_leaf} values. Found \texttt{max\_depth=8} and \texttt{learning\_rate=0.05} to be optimal.
+  \item \textbf{Outlier Removal}: Capping at 99th percentile helped models focus on realistic data ranges.
+  \item \textbf{Feature Scaling}: \texttt{StandardScaler} improved Logistic Regression convergence.
+  \item \textbf{Feature Engineering}: \texttt{loan\_percent\_income} (loan/income ratio) was the single most important predictor across all models.
+\end{enumerate}
+
+% ===================================================================
+\section{Application --- Streamlit Dashboard}
+
+We built a full web application using Streamlit with the following features:
+
+\begin{enumerate}[leftmargin=2cm]
+  \item \textbf{Model Selection}: Users can choose any of the three models.
+  \item \textbf{Model Comparison}: Bar chart (accuracy) and ROC curves displayed side-by-side.
+  \item \textbf{Real-Time Prediction}: Input applicant details via a form and get instant default probability with risk classification (Low/Medium/High).
+  \item \textbf{Feature Importance}: After prediction, shows the top 5 factors affecting the result.
+  \item \textbf{Metrics Dashboard}: Sidebar shows active model's accuracy, F1-Score, and AUC.
+\end{enumerate}
+
+\textbf{Tech Stack}: Streamlit, scikit-learn, XGBoost, Pandas, NumPy, Matplotlib.
+
+% ===================================================================
+\section{Team Contribution}
+
+\begin{table}[H]
+  \centering
+  \caption{Team Contribution Breakdown}
+  \begin{tabular}{l p{9cm}}
+    \toprule
+    \textbf{Team Member} & \textbf{Contribution} \\
+    \midrule
+    \textbf{Dhanvin Vadlamudi} (Lead)
+      & Overall project architecture and planning. Built the XGBoost model and tuned its hyperparameters. Wrote the preprocessing pipeline (\texttt{preprocessing.py}). Managed the repository and coordinated team tasks. \\
+    \addlinespace
+    \textbf{[Member 2]}
+      & Built the Logistic Regression model --- training, evaluation, and tuning. Performed initial EDA and data exploration in notebooks. Helped with data cleaning logic. \\
+    \addlinespace
+    \textbf{Chaitanya}
+      & Built the Decision Tree model. Experimented with different hyperparameters (\texttt{max\_depth}, \texttt{min\_samples\_leaf}). Assisted with feature encoding. \\
+    \addlinespace
+    \textbf{[Member 4]}
+      & Wrote the project report. Built the Streamlit application (\texttt{app.py}). Integrated all models into the dashboard. Assisted with testing and debugging. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ===================================================================
+\section{Conclusion}
+
+We built a complete loan default prediction system from scratch. We trained three models (Logistic Regression, Decision Tree, XGBoost), compared their performance, and found that \textbf{XGBoost} gave the best results with 91.27\% accuracy and 0.98 ROC-AUC.
+
+Key takeaways:
+\begin{itemize}[leftmargin=2cm]
+  \item Handling class imbalance is critical --- without it, models just predict the majority class.
+  \item XGBoost outperforms simpler models on tabular data thanks to gradient boosting.
+  \item Deploying as a Streamlit app makes the project practical and demonstrable.
+  \item \texttt{loan\_percent\_income} was consistently the top predictor of default.
+\end{itemize}
+
+% ===================================================================
+\section{References}
+
+\begin{enumerate}[leftmargin=2cm]
+  \item scikit-learn Documentation --- \url{https://scikit-learn.org/stable/}
+  \item XGBoost Documentation --- \url{https://xgboost.readthedocs.io/}
+  \item Streamlit Documentation --- \url{https://docs.streamlit.io/}
+  \item Pandas Documentation --- \url{https://pandas.pydata.org/docs/}
+\end{enumerate}
+
+% ===================================================================
+\section*{Academic Integrity Declaration}
+
+We, the above-named team members, hereby affirm that the core logic, model architecture, preprocessing pipeline, and Streamlit application code in this project are our own original work. No Generative AI tool was used to directly produce the core implementation. All use of AI tools was limited to research, understanding concepts, and debugging, in accordance with course guidelines.
+
+\vspace{1cm}
+
+\noindent
+\textbf{Team Lead:} Dhanvin Vadlamudi \\
+\textbf{Date:} February 2026
+
+\end{document}

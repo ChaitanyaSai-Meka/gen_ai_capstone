@@ -4,8 +4,6 @@ from sklearn.model_selection import train_test_split
 
 
 def load_and_clean_data(filepath='loan_data.csv'):
-    """Load the CSV file and clean the data"""
-
     df = pd.read_csv(filepath)
 
     df = df.dropna()
@@ -26,8 +24,6 @@ def load_and_clean_data(filepath='loan_data.csv'):
 
 
 def get_train_test_split(df):
-    """Split data into training and testing sets"""
-
     X = df.drop(columns=['loan_status'])
     y = df['loan_status']
 
@@ -37,8 +33,6 @@ def get_train_test_split(df):
 
 
 def encode_education(df):
-    """Convert education level text to numbers"""
-
     education_mapping = {
         'High School': 0,
         'Associate': 1,
@@ -53,15 +47,11 @@ def encode_education(df):
 
 
 def encode_categories(df):
-    """Convert categorical columns to dummy variables (0s and 1s)"""
-
     df = pd.get_dummies(df, columns=['person_home_ownership', 'loan_intent'], drop_first=True)
     return df
 
 
 def preprocess_features(df):
-    """Apply all encoding steps to prepare data for the model"""
-
     df = encode_education(df)
     df = encode_categories(df)
     return df
