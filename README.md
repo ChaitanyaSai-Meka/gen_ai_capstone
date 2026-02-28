@@ -10,9 +10,11 @@ Financial institutions face significant losses when borrowers fail to repay loan
 
 ---
 
-## 🚀 Live Demo
+## 🔑 Key Sub-Features
 
-> 🔗 **[Deployed App Link]** — *(Replace with your Streamlit Cloud / Hugging Face URL)*
+1. **Custom Data Preprocessing Pipeline** — Automated outlier capping (99th percentile), ordinal encoding for education levels, one-hot encoding for categorical features, and binary encoding for gender/defaults. All steps are modularised in `preprocessing.py`.
+2. **Real-Time Inference via Streamlit Dashboard** — Users input applicant details through a form and get instant default probability predictions with risk classification (Low/Medium/High). The app also displays the top 5 factors influencing each prediction.
+3. **Multi-Model Comparison Dashboard** — Side-by-side accuracy bar charts, overlaid ROC curves, and a consolidated metrics table (Accuracy, F1-Score, ROC-AUC) to compare all three models in one view.
 
 ---
 
@@ -29,13 +31,13 @@ gen_ai_capstone/
 ├── models/
 │   ├── logistic_regression.py  # Logistic Regression model training
 │   ├── decision_tree.py        # Decision Tree model training
-│   └── random_forest.py        # Random Forest model training
+│   └── xgboost_model.py        # XGBoost model training
 │
 └── notebooks/
     ├── preprocessing.ipynb         # EDA — charts, distributions, correlation matrix
     ├── logistic_regression.ipynb   # LR training and evaluation
     ├── decision_tree.ipynb         # DT training and evaluation
-    └── random_forest.ipynb         # RF training and evaluation
+    └── xgboost.ipynb               # XGBoost training and evaluation
 ```
 
 ---
@@ -65,22 +67,23 @@ streamlit run app.py
 
 ## 🧠 Models Implemented
 
-| Model | Description |
-|---|---|
-| Logistic Regression | Linear model that predicts probability of default based on weighted features |
-| Decision Tree | Tree-based model that splits data using feature thresholds to make decisions |
-| Random Forest | Ensemble of 100 Decision Trees for more stable and accurate predictions |
+| Model | Description | Accuracy | F1-Score | ROC-AUC |
+|---|---|---|---|---|
+| Logistic Regression | Linear baseline model using sigmoid function | 85.25% | 0.7389 | 0.9523 |
+| Decision Tree | Non-linear tree-based model with depth control | 88.03% | 0.7714 | 0.9627 |
+| **XGBoost** ⭐ | **Gradient boosted ensemble — best performer** | **91.27%** | **0.8239** | **0.9763** |
 
-All models use `class_weight='balanced'` to handle the class imbalance (78% No Default vs 22% Default).
+All models handle class imbalance (78% No Default vs 22% Default) using `class_weight='balanced'` or `scale_pos_weight`.
 
 ---
 
 ## 📊 Dataset
 
-- **Source:** `loan_data.csv`
-- **Records:** 45,000
+- **Source:** [Loan Approval Classification Data — Kaggle](https://www.kaggle.com/datasets/taweilo/loan-approval-classification-data)
+- **Records:** ~45,000 (43,691 after cleaning)
 - **Features:** 14 (demographic + financial + credit history)
 - **Target:** `loan_status` (1 = Default, 0 = No Default)
+- **Class Split:** 78% No Default, 22% Default (imbalanced)
 
 ---
 
@@ -88,7 +91,7 @@ All models use `class_weight='balanced'` to handle the class imbalance (78% No D
 
 | Name | Roll No | Batch |
 |---|---|---|
-| [Team Member 1] | [Roll No] | [Batch] |
+| Dhanvin Vadlamudi (Lead) | [Roll No] | [Batch] |
 | [Team Member 2] | [Roll No] | [Batch] |
 | [Team Member 3] | [Roll No] | [Batch] |
 | [Team Member 4] | [Roll No] | [Batch] |
