@@ -51,33 +51,39 @@
   {\LARGE\bfseries Loan Default Prediction System}\\[0.5cm]
   {\Large Using Machine Learning Classification Models}\\[2cm]
 
-  {\large\textbf{Intro to GenAI --- Capstone Project Report}}\\[0.5cm]
-  {\large NST Sonipat}\\[2.5cm]
+  {\large\textbf{Intro to GenAI --- Capstone Project Report}}\\[2.5cm]
 
   {\large\textbf{Team Members}}\\[0.5cm]
-  \begin{tabular}{l l l}
+  \begin{tabular}{l l}
     \toprule
-    \textbf{Name} & \textbf{Roll No} & \textbf{Role} \\
+    \textbf{Name} & \textbf{Role} \\
     \midrule
-    Dhanvin Vadlamudi & [Roll No] & Team Lead \\
-    [Member 2]        & [Roll No] & Team Member \\
-    Chaitanya         & [Roll No] & Team Member \\
-    [Member 4]        & [Roll No] & Team Member \\
+    Dhanvin Vadlamudi   & Team Lead \\
+    Meka Chaitanya Sai  & Team Member \\
+    Killi Akshith Kumar & Team Member \\
+    Akhil Nath Reddy    & Team Member \\
     \bottomrule
   \end{tabular}
 
   \vfill
 
-  {\large February 2026}
+  {\large March 2026}
 
 \end{titlepage}
 
+% ---- Abstract ----
+\newpage
+\begin{abstract}
+Loan defaults are a significant financial risk for lending institutions. In this project, we built an end-to-end machine learning system to predict whether a loan applicant is likely to default. We used a Kaggle dataset of 45,000 loan records with 13 features and trained three classification models: Logistic Regression (baseline), Decision Tree (intermediate), and XGBoost (advanced). After handling class imbalance and tuning hyperparameters, XGBoost achieved the best performance with 91.27\% accuracy, 0.82 F1-Score, and 0.98 ROC-AUC. The system was deployed as a Streamlit web application that allows users to input applicant profiles and receive real-time default probability predictions with risk classification.
+\end{abstract}
+
+% ---- Table of Contents ----
 \newpage
 \tableofcontents
 \newpage
 
 % ===================================================================
-\section{Problem Statement}
+\section{Introduction}
 
 Loan defaults cause massive losses for banks. Traditional manual checks are slow and miss patterns in data. Our goal is to build a machine learning system that:
 
@@ -91,7 +97,7 @@ Loan defaults cause massive losses for banks. Traditional manual checks are slow
 % ===================================================================
 \section{Data Description}
 
-We used the Loan Approval Classification dataset from Kaggle (\url{https://www.kaggle.com/datasets/taweilo/loan-approval-classification-data}), saved as \texttt{loan\_data.csv}, containing \textbf{$\sim$45,000 records} with 14 features.
+We used the Loan Approval Classification dataset from Kaggle \cite{kaggle_dataset}, saved as \texttt{loan\_data.csv}, containing \textbf{45,000 records} with 14 columns.
 
 \begin{table}[H]
   \centering
@@ -102,14 +108,14 @@ We used the Loan Approval Classification dataset from Kaggle (\url{https://www.k
     \midrule
     person\_age             & Numerical   & Age of the applicant \\
     person\_gender          & Categorical & Gender (male/female) \\
-    person\_education       & Categorical & Education level \\
+    person\_education       & Categorical & Education level (High School, Associate, Bachelor, Master, Doctorate) \\
     person\_income          & Numerical   & Annual income (\$) \\
     person\_emp\_exp        & Numerical   & Employment experience (years) \\
-    person\_home\_ownership & Categorical & Rent, Own, Mortgage, or Other \\
+    person\_home\_ownership & Categorical & Home ownership (RENT, OWN, MORTGAGE, OTHER) \\
     loan\_amnt              & Numerical   & Loan amount requested \\
-    loan\_intent            & Categorical & Purpose of the loan \\
+    loan\_intent            & Categorical & Purpose of the loan (PERSONAL, EDUCATION, MEDICAL, VENTURE, HOMEIMPROVEMENT, DEBTCONSOLIDATION) \\
     loan\_int\_rate         & Numerical   & Interest rate (\%) \\
-    loan\_percent\_income   & Numerical   & Loan as \% of income \\
+    loan\_percent\_income   & Numerical   & Loan amount as \% of income \\
     cb\_person\_cred\_hist\_length & Numerical & Credit history length (years) \\
     credit\_score           & Numerical   & Credit score (300--850) \\
     previous\_loan\_defaults\_on\_file & Categorical & Defaulted before (Yes/No) \\
@@ -119,7 +125,7 @@ We used the Loan Approval Classification dataset from Kaggle (\url{https://www.k
   \end{tabular}
 \end{table}
 
-The dataset is \textbf{imbalanced}: 78\% No Default vs 22\% Default. This was a key challenge we had to handle.
+The dataset is \textbf{imbalanced}: 35,000 records (78\%) are No Default and 10,000 records (22\%) are Default.
 
 % ===================================================================
 \section{Exploratory Data Analysis (EDA)}
@@ -128,7 +134,7 @@ We performed EDA in \texttt{preprocessing.ipynb} to understand the data before m
 
 \textbf{Missing Values:} Dropped rows with nulls using \texttt{df.dropna()}.
 
-\textbf{Outliers:} Capped extreme values at the 99th percentile for \texttt{person\_age}, \texttt{person\_income}, and \texttt{person\_emp\_exp}.
+\textbf{Outliers:} Capped extreme values at the 99th percentile for \texttt{person\_age}, \texttt{person\_income}, and \texttt{person\_emp\_exp} using \texttt{df['column'].quantile(0.99)}.
 
 \textbf{Key Findings from Correlation Analysis:}
 \begin{itemize}[leftmargin=2cm]
@@ -143,11 +149,11 @@ We performed EDA in \texttt{preprocessing.ipynb} to understand the data before m
 All preprocessing is in \texttt{preprocessing.py}:
 
 \begin{enumerate}[leftmargin=2cm]
-  \item \textbf{Cleaning}: Drop nulls, cap outliers at 99th percentile, binary-encode gender and previous defaults.
+  \item \textbf{Cleaning}: Drop nulls, cap outliers at 99th percentile, binary-encode gender (male=1, female=0) and previous defaults (Yes=1, No=0).
   \item \textbf{Ordinal Encoding}: Education mapped to 0--4 (High School < Associate < Bachelor < Master < Doctorate).
   \item \textbf{One-Hot Encoding}: \texttt{person\_home\_ownership} and \texttt{loan\_intent} via \texttt{pd.get\_dummies(drop\_first=True)}.
-  \item \textbf{Train-Test Split}: 80/20 split with \texttt{random\_state=42}.
-  \item \textbf{Feature Scaling}: \texttt{StandardScaler} applied only for Logistic Regression (tree models do not need scaling).
+  \item \textbf{Train-Test Split}: 80/20 split with \texttt{random\_state=42} for reproducibility.
+  \item \textbf{Feature Scaling}: \texttt{StandardScaler} applied only for Logistic Regression (tree-based models do not need scaling).
 \end{enumerate}
 
 % ===================================================================
@@ -157,15 +163,15 @@ We trained three classification models, progressing from simple to advanced:
 
 \subsection{Logistic Regression (Baseline)}
 
-A linear model using the sigmoid function to output default probability. Configured with \texttt{max\_iter=1000}, \texttt{class\_weight='balanced'}, and \texttt{StandardScaler}. Chosen as our baseline because it is fast, interpretable, and gives us a reference point.
+A linear model using the sigmoid function to output default probability \cite{sklearn}. Configured with \texttt{max\_iter=1000}, \texttt{class\_weight='balanced'}, and \texttt{StandardScaler}. Chosen as our baseline because it is fast, interpretable, and gives us a reference point.
 
 \subsection{Decision Tree (Intermediate)}
 
-A non-linear model that splits data at feature thresholds to create a tree of decisions. Configured with \texttt{max\_depth=8}, \texttt{min\_samples\_leaf=10}, and \texttt{class\_weight='balanced'}. Chosen because it captures feature interactions that logistic regression cannot.
+A non-linear model that splits data at feature thresholds to create a tree of decisions \cite{sklearn}. Configured with \texttt{max\_depth=8}, \texttt{min\_samples\_leaf=10}, and \texttt{class\_weight='balanced'}. Chosen because it captures feature interactions that logistic regression cannot.
 
 \subsection{XGBoost (Best Model)}
 
-A gradient boosting algorithm that builds 200 trees sequentially, each correcting errors of the previous ones. Key parameters:
+A gradient boosting algorithm that builds 200 trees sequentially, each correcting errors of the previous ones \cite{xgboost}. Key parameters:
 
 \begin{itemize}[leftmargin=2cm]
   \item \texttt{n\_estimators=200}, \texttt{max\_depth=8}, \texttt{learning\_rate=0.05}
@@ -176,7 +182,7 @@ A gradient boosting algorithm that builds 200 trees sequentially, each correctin
 Chosen because XGBoost is the best-performing algorithm for structured/tabular datasets.
 
 % ===================================================================
-\section{Evaluation}
+\section{Results}
 
 All models were evaluated on the \textbf{test set} (20\% unseen data) using Accuracy, F1-Score, and ROC-AUC.
 
@@ -205,25 +211,42 @@ All models were evaluated on the \textbf{test set} (20\% unseen data) using Accu
 Steps taken to improve model performance:
 
 \begin{enumerate}[leftmargin=2cm]
-  \item \textbf{Class Imbalance Handling}: Used \texttt{class\_weight='balanced'} (LR, DT) and \texttt{scale\_pos\_weight} (XGBoost) to give more importance to the minority default class.
-  \item \textbf{Hyperparameter Tuning}: Experimented with \texttt{max\_depth} (5, 6, 8, 10), \texttt{learning\_rate} (0.01, 0.05, 0.1, 0.3), and \texttt{min\_samples\_leaf} values. Found \texttt{max\_depth=8} and \texttt{learning\_rate=0.05} to be optimal.
-  \item \textbf{Outlier Removal}: Capping at 99th percentile helped models focus on realistic data ranges.
-  \item \textbf{Feature Scaling}: \texttt{StandardScaler} improved Logistic Regression convergence.
-  \item \textbf{Feature Engineering}: \texttt{loan\_percent\_income} (loan/income ratio) was the single most important predictor across all models.
+  \item \textbf{Class Imbalance Handling}: Used \texttt{class\_weight='balanced'} in Logistic Regression and Decision Tree, and \texttt{scale\_pos\_weight} in XGBoost. Without this, the model would just predict ``No Default'' for everyone and get 78\% accuracy --- which is useless.
+  \item \textbf{Hyperparameter Selection}: We tried different values of \texttt{max\_depth} (5, 8, 10) and found 8 gave the best balance. For XGBoost, \texttt{learning\_rate=0.05} with 200 trees performed better than the default settings. We also added \texttt{min\_samples\_leaf=10} to prevent the Decision Tree from creating leaves with too few samples.
+  \item \textbf{Outlier Removal}: Capping at the 99th percentile helped models focus on realistic data ranges instead of being skewed by extreme values.
+  \item \textbf{Feature Scaling}: \texttt{StandardScaler} improved Logistic Regression convergence since it is sensitive to feature magnitudes.
 \end{enumerate}
 
 % ===================================================================
 \section{Application --- Streamlit Dashboard}
 
-We built a full web application using Streamlit with the following features:
+We built a web application using Streamlit \cite{streamlit} with the following features:
+
+\textbf{Hosted App:} \url{https://genaicapstone-m8ezlrzqqq8ctmmfgsh6ur.streamlit.app/}
+
+\textbf{GitHub Repository:} \url{https://github.com/ChaitanyaSai-Meka/gen_ai_capstone}
 
 \begin{enumerate}[leftmargin=2cm]
-  \item \textbf{Model Selection}: Users can choose any of the three models.
+  \item \textbf{Model Selection}: Users can choose any of the three models from the sidebar.
   \item \textbf{Model Comparison}: Bar chart (accuracy) and ROC curves displayed side-by-side.
   \item \textbf{Real-Time Prediction}: Input applicant details via a form and get instant default probability with risk classification (Low/Medium/High).
   \item \textbf{Feature Importance}: After prediction, shows the top 5 factors affecting the result.
   \item \textbf{Metrics Dashboard}: Sidebar shows active model's accuracy, F1-Score, and AUC.
 \end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{dashboard.png}
+  \caption{Streamlit Dashboard --- Model Comparison with Accuracy Bar Chart and ROC Curves}
+  \label{fig:dashboard}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{prediction_form.png}
+  \caption{Real-Time Prediction Form with Risk Classification Output}
+  \label{fig:prediction}
+\end{figure}
 
 \textbf{Tech Stack}: Streamlit, scikit-learn, XGBoost, Pandas, NumPy, Matplotlib.
 
@@ -240,13 +263,13 @@ We built a full web application using Streamlit with the following features:
     \textbf{Dhanvin Vadlamudi} (Lead)
       & Overall project architecture and planning. Built the XGBoost model and tuned its hyperparameters. Wrote the preprocessing pipeline (\texttt{preprocessing.py}). Managed the repository and coordinated team tasks. \\
     \addlinespace
-    \textbf{[Member 2]}
-      & Built the Logistic Regression model --- training, evaluation, and tuning. Performed initial EDA and data exploration in notebooks. Helped with data cleaning logic. \\
-    \addlinespace
-    \textbf{Chaitanya}
+    \textbf{Meka Chaitanya Sai}
       & Built the Decision Tree model. Experimented with different hyperparameters (\texttt{max\_depth}, \texttt{min\_samples\_leaf}). Assisted with feature encoding. \\
     \addlinespace
-    \textbf{[Member 4]}
+    \textbf{Killi Akshith Kumar}
+      & Built the Logistic Regression model --- training, evaluation, and tuning. Performed initial EDA and data exploration in notebooks. Helped with data cleaning logic. \\
+    \addlinespace
+    \textbf{Akhil Nath Reddy}
       & Wrote the project report. Built the Streamlit application (\texttt{app.py}). Integrated all models into the dashboard. Assisted with testing and debugging. \\
     \bottomrule
   \end{tabular}
@@ -266,14 +289,29 @@ Key takeaways:
 \end{itemize}
 
 % ===================================================================
-\section{References}
+\begin{thebibliography}{9}
 
-\begin{enumerate}[leftmargin=2cm]
-  \item scikit-learn Documentation --- \url{https://scikit-learn.org/stable/}
-  \item XGBoost Documentation --- \url{https://xgboost.readthedocs.io/}
-  \item Streamlit Documentation --- \url{https://docs.streamlit.io/}
-  \item Pandas Documentation --- \url{https://pandas.pydata.org/docs/}
-\end{enumerate}
+\bibitem{kaggle_dataset}
+Tawei Lo, ``Loan Approval Classification Data,'' Kaggle, 2024. \\
+\url{https://www.kaggle.com/datasets/taweilo/loan-approval-classification-data}
+
+\bibitem{sklearn}
+F. Pedregosa et al., ``Scikit-learn: Machine Learning in Python,'' \textit{Journal of Machine Learning Research}, vol. 12, pp. 2825--2830, 2011. \\
+\url{https://scikit-learn.org/stable/}
+
+\bibitem{xgboost}
+T. Chen and C. Guestrin, ``XGBoost: A Scalable Tree Boosting System,'' in \textit{Proceedings of the 22nd ACM SIGKDD}, 2016. \\
+\url{https://xgboost.readthedocs.io/}
+
+\bibitem{streamlit}
+Streamlit Inc., ``Streamlit --- The fastest way to build data apps,'' 2024. \\
+\url{https://docs.streamlit.io/}
+
+\bibitem{pandas}
+W. McKinney, ``Data Structures for Statistical Computing in Python,'' in \textit{Proceedings of the 9th Python in Science Conference}, 2010. \\
+\url{https://pandas.pydata.org/}
+
+\end{thebibliography}
 
 % ===================================================================
 \section*{Academic Integrity Declaration}
@@ -284,6 +322,6 @@ We, the above-named team members, hereby affirm that the core logic, model archi
 
 \noindent
 \textbf{Team Lead:} Dhanvin Vadlamudi \\
-\textbf{Date:} February 2026
+\textbf{Date:} March 2026
 
 \end{document}

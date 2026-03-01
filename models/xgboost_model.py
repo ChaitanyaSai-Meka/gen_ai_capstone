@@ -8,6 +8,13 @@ from preprocessing import preprocess_features
 
 
 def train(df):
+    """Train an XGBoost classifier for loan default prediction.
+
+    Uses gradient boosting with 200 estimators, learning_rate=0.05,
+    and scale_pos_weight to handle class imbalance. Subsample and
+    colsample_bytree are set to 0.8 for regularisation.
+    Returns the trained model, feature names, and train/test splits.
+    """
     df = preprocess_features(df)
 
     X = df.drop(columns=['loan_status'])

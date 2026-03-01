@@ -8,6 +8,12 @@ from preprocessing import preprocess_features
 
 
 def train(df):
+    """Train a Decision Tree classifier for loan default prediction.
+
+    Uses max_depth=8 and min_samples_leaf=10 to prevent overfitting,
+    and class_weight='balanced' to handle class imbalance.
+    Returns the trained model, feature names, and train/test splits.
+    """
     df = preprocess_features(df)
 
     X = df.drop(columns=['loan_status'])

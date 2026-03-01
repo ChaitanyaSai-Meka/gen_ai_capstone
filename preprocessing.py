@@ -4,6 +4,11 @@ from sklearn.model_selection import train_test_split
 
 
 def load_and_clean_data(filepath='loan_data.csv'):
+    """Load the dataset and perform data cleaning.
+
+    Steps: drop nulls, cap outliers at 99th percentile for age/income/experience,
+    and binary-encode gender and previous defaults.
+    """
     df = pd.read_csv(filepath)
 
     df = df.dropna()
@@ -24,6 +29,7 @@ def load_and_clean_data(filepath='loan_data.csv'):
 
 
 def get_train_test_split(df):
+    """Split the dataframe into 80/20 train-test sets."""
     X = df.drop(columns=['loan_status'])
     y = df['loan_status']
 
@@ -33,6 +39,7 @@ def get_train_test_split(df):
 
 
 def encode_education(df):
+    """Map education levels to ordinal values 0-4."""
     education_mapping = {
         'High School': 0,
         'Associate': 1,
@@ -47,11 +54,13 @@ def encode_education(df):
 
 
 def encode_categories(df):
+    """One-hot encode home ownership and loan intent columns."""
     df = pd.get_dummies(df, columns=['person_home_ownership', 'loan_intent'], drop_first=True)
     return df
 
 
 def preprocess_features(df):
+    """Apply all feature encoding: ordinal for education, one-hot for categoricals."""
     df = encode_education(df)
     df = encode_categories(df)
     return df

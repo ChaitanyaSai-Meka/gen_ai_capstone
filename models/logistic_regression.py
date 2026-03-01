@@ -9,6 +9,12 @@ from preprocessing import preprocess_features
 
 
 def train(df):
+    """Train a Logistic Regression model for loan default prediction.
+
+    Uses StandardScaler for feature normalisation and class_weight='balanced'
+    to handle class imbalance. Returns the trained model, scaler, feature names,
+    and train/test splits.
+    """
     df = preprocess_features(df)
 
     X = df.drop(columns=['loan_status'])
