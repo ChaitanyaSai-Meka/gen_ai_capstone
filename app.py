@@ -315,7 +315,7 @@ def main():
                     credit_score = st.number_input("Credit Score", min_value=300, max_value=850, value=650)
                     prev_defaults = st.selectbox("Previous Defaults", ["No", "Yes"])
 
-                submit = st.form_submit_button("Predict", width='stretch', type="primary")
+                submit = st.form_submit_button("Predict", type="primary", use_container_width=True)
 
         with col_result:
             st.markdown("**Result**")
