@@ -22,6 +22,14 @@ Financial institutions face significant losses when borrowers fail to repay loan
 
 ---
 
+## Architecture Diagram
+
+![System Architecture](architecture_diagram.png)
+
+---
+
+---
+
 ## Project Structure
 
 ```
@@ -78,6 +86,8 @@ streamlit run app.py
 | **XGBoost (Best)** | **Gradient boosted ensemble — best performer** | **91.27%** | **0.8239** | **0.9763** |
 
 All models handle class imbalance (78% No Default vs 22% Default) using `class_weight='balanced'` or `scale_pos_weight`.
+
+![Model Performance Comparison](model_comparison.png)
 
 ---
 
