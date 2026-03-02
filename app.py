@@ -264,9 +264,9 @@ def main():
         
         
         try:
-            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            st.dataframe(styled_df, width='stretch', hide_index=True)
         except TypeError:
-            st.dataframe(styled_df, use_container_width=True)
+            st.dataframe(styled_df, width='stretch')
 
         st.markdown("---")
 
@@ -315,7 +315,7 @@ def main():
                     credit_score = st.number_input("Credit Score", min_value=300, max_value=850, value=650)
                     prev_defaults = st.selectbox("Previous Defaults", ["No", "Yes"])
 
-                submit = st.form_submit_button("Predict", use_container_width=True, type="primary")
+                submit = st.form_submit_button("Predict", width='stretch', type="primary")
 
         with col_result:
             st.markdown("**Result**")
@@ -407,7 +407,7 @@ def main():
         
         st.markdown("---")
         st.subheader("System Architecture Overview")
-        st.image("architecture_diagram.png", use_container_width=True)
+        st.image("architecture_diagram.png", width='stretch')
                 
     elif page == "Dataset":
         st.title("Dataset Information")
@@ -419,11 +419,11 @@ def main():
         st.write("The dataset is sourced from historical lending data. It reflects real-world scenarios in finance and risk assessment.")
         
         st.markdown("### Sample Data")
-        st.dataframe(df.head(100), use_container_width=True)
+        st.dataframe(df.head(100), width='stretch')
         
         st.markdown("### Features Summary")
         st.write("A statistical summary of the quantitative characteristics included in the dataset.")
-        st.dataframe(df.describe(), use_container_width=True)
+        st.dataframe(df.describe(), width='stretch')
         
     elif page == "Model Comparison":
         st.title("Detailed Model Comparison")
@@ -494,7 +494,7 @@ def main():
         )
         
         st.markdown("---")
-        st.image("architecture_diagram.png", use_container_width=True, caption="End-to-End System Architecture")
+        st.image("architecture_diagram.png", width='stretch', caption="End-to-End System Architecture")
         
     elif page == "Report":
         st.title("Project Report")
