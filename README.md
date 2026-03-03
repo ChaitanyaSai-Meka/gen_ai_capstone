@@ -24,7 +24,7 @@ Financial institutions face significant losses when borrowers fail to repay loan
 
 ## Architecture Diagram
 
-![System Architecture](architecture_diagram.png)
+![System Architecture](assets/architecture_diagram.png)
 
 ---
 
@@ -37,8 +37,16 @@ gen_ai_capstone/
 │
 ├── app.py                  # Streamlit frontend — UI, forms, predictions, charts
 ├── preprocessing.py        # Data loading, cleaning, outlier handling, encoding
-├── loan_data.csv           # Dataset (45,000 records, 14 features)
 ├── README.md
+│
+├── data/
+│   └── loan_data.csv       # Dataset (45,000 records, 14 features)
+│
+├── assets/                 # Images, diagrams, and media
+│
+├── reports/                # Project reports and documentation
+│   ├── report.tex
+│   └── loan_risk_report.pdf
 │
 ├── models/
 │   ├── logistic_regression.py  # Logistic Regression model training
@@ -87,7 +95,7 @@ streamlit run app.py
 
 All models handle class imbalance (78% No Default vs 22% Default) using `class_weight='balanced'` or `scale_pos_weight`.
 
-![Model Performance Comparison](model_comparison.png)
+![Model Performance Comparison](assets/model_comparison.png)
 
 ---
 

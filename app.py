@@ -20,7 +20,7 @@ import models.xgboost_model as xgb_module
 
 @st.cache_data
 def load_data():
-    return load_and_clean_data('loan_data.csv')
+    return load_and_clean_data('data/loan_data.csv')
 
 
 @st.cache_resource
@@ -407,7 +407,7 @@ def main():
         
         st.markdown("---")
         st.subheader("System Architecture Overview")
-        st.image("architecture_diagram.png", use_container_width=True)
+        st.image("assets/architecture_diagram.png", use_container_width=True)
                 
     elif page == "Dataset":
         st.title("Dataset Information")
@@ -494,7 +494,7 @@ def main():
         )
         
         st.markdown("---")
-        st.image("architecture_diagram.png", use_container_width=True, caption="End-to-End System Architecture")
+        st.image("assets/architecture_diagram.png", use_container_width=True, caption="End-to-End System Architecture")
         
     elif page == "Report":
         st.title("Project Report")
@@ -503,7 +503,7 @@ def main():
         
         import os
         import base64
-        report_path = "loan_risk_report.pdf" 
+        report_path = "reports/loan_risk_report.pdf" 
         
         if os.path.exists(report_path):
             with open(report_path, "rb") as pdf_file:

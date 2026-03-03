@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 
-def load_and_clean_data(filepath='loan_data.csv'):
+def load_and_clean_data(filepath='data/loan_data.csv'):
     """Load the dataset and perform data cleaning.
 
     Steps: drop nulls, cap outliers at 99th percentile for age/income/experience,
