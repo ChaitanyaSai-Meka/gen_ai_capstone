@@ -7,7 +7,7 @@ import seaborn as sns
 
 st.set_page_config(
     page_title="Credit Risk AI — Intelligent Lending Decision Support",
-    page_icon="🏦",
+    page_icon="bar-chart",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -111,7 +111,7 @@ def main():
         unsafe_allow_html=True
     )
 
-    st.sidebar.markdown('<div class="sidebar-title">🏦 Credit Risk AI</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="sidebar-title">Credit Risk AI</div>', unsafe_allow_html=True)
     page = st.sidebar.radio(
         "Go to:",
         ["Home", "AI Lending Agent", "Dataset", "Model Comparison", "Architecture", "Report"],
@@ -207,7 +207,7 @@ def _render_home_page():
         ax1.grid(axis='y', linestyle='--', alpha=0.4)
         plt.tight_layout()
         st.pyplot(fig1)
-        st.caption("📊 Metric: **Accuracy** — percentage of correct predictions on test data.")
+        st.caption("Metric: **Accuracy** — percentage of correct predictions on test data.")
 
     with col_roc:
         prob_lr = get_proba(lr_model, lr_X_test, lr_scaler)
@@ -234,7 +234,7 @@ def _render_home_page():
         ax2.grid(True, linestyle='--', alpha=0.4)
         plt.tight_layout()
         st.pyplot(fig2)
-        st.caption("📊 Metric: **ROC AUC** — measures how well the model separates defaulters from non-defaulters.")
+        st.caption("Metric: **ROC AUC** — measures how well the model separates defaulters from non-defaulters.")
 
     st.markdown("")
     st.markdown("**Metrics**")
@@ -472,7 +472,7 @@ def _render_agent_page():
 
     st.markdown("""
     <div class="agent-header">
-        <h1>🤖 AI Lending Decision Support</h1>
+        <h1>AI Lending Decision Support</h1>
         <p>Powered by LangGraph · FAISS RAG · Llama 3.1 · Responsible AI</p>
     </div>
     """, unsafe_allow_html=True)
@@ -483,7 +483,7 @@ def _render_agent_page():
     """)
 
     st.markdown("---")
-    st.subheader("📋 Borrower Profile Input")
+    st.subheader("Borrower Profile Input")
 
     with st.form("agent_form"):
         col1, col2, col3 = st.columns(3)
@@ -525,7 +525,7 @@ def _render_agent_page():
             previous_defaults = st.selectbox("Previous Defaults on File", ["No", "Yes"], key="ag_pd")
 
         generate = st.form_submit_button(
-            "🚀 Generate AI Assessment Report",
+            "Generate AI Assessment Report",
             use_container_width=True,
             type="primary"
         )
@@ -546,7 +546,7 @@ def _render_agent_page():
             "previous_defaults": previous_defaults,
         }
 
-        with st.spinner("🔄 Running AI agent — analyzing profile, retrieving regulations, generating report…"):
+        with st.spinner("Running AI agent — analyzing profile, retrieving regulations, generating report…"):
             try:
                 agent_graph = get_agent_graph(lr_result, dt_result, xgb_result)
 
@@ -570,11 +570,11 @@ def _render_agent_page():
             return
 
         st.markdown("---")
-        st.subheader("📊 Structured Credit Assessment Report")
+        st.subheader("Structured Credit Assessment Report")
 
         st.markdown("**Agent Workflow Completed:**")
         for step in ["1. Parse Borrower Profile", "2. ML Risk Scoring", "3. RAG Regulation Retrieval", "4. LLM Assessment", "5. Report Formatting"]:
-            st.markdown(f'<span class="step-badge">✅ {step}</span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="step-badge">{step}</span>', unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -596,11 +596,11 @@ def _render_agent_page():
             st.metric("Decision Tree", f"{model_probs.get('Decision Tree', 0):.1f}%")
 
         if risk_class == "High Risk":
-            st.error(f"🔴 Consensus Risk Classification: **{risk_class}**")
+            st.error(f"Consensus Risk Classification: **{risk_class}**")
         elif risk_class == "Medium Risk":
-            st.warning(f"🟡 Consensus Risk Classification: **{risk_class}**")
+            st.warning(f"Consensus Risk Classification: **{risk_class}**")
         else:
-            st.success(f"🟢 Consensus Risk Classification: **{risk_class}**")
+            st.success(f"Consensus Risk Classification: **{risk_class}**")
 
         if risk_drivers:
             st.markdown(f"**Top Risk Drivers:** {' · '.join(risk_drivers)}")
@@ -617,14 +617,14 @@ def _render_agent_page():
         with col_left:
             st.markdown("""
             <div class="report-card">
-                <h3>👤 Borrower Summary</h3>
+                <h3>Borrower Summary</h3>
             </div>
             """, unsafe_allow_html=True)
             st.write(report.get("borrower_summary", "N/A"))
 
             st.markdown("""
             <div class="report-card" style="margin-top:1rem;">
-                <h3>📈 Risk Analysis</h3>
+                <h3>Risk Analysis</h3>
             </div>
             """, unsafe_allow_html=True)
             st.write(report.get("risk_analysis", "N/A"))
@@ -633,17 +633,14 @@ def _render_agent_page():
             decision = report.get("lending_decision", "N/A")
             if decision == "APPROVE":
                 decision_class = "decision-approve"
-                decision_icon = "✅"
             elif decision == "CONDITIONAL APPROVE":
                 decision_class = "decision-conditional"
-                decision_icon = "⚠️"
             else:
                 decision_class = "decision-decline"
-                decision_icon = "❌"
 
             st.markdown(f"""
             <div class="report-card {decision_class}">
-                <h3>{decision_icon} Lending Decision: {decision}</h3>
+                <h3>Lending Decision: {decision}</h3>
             </div>
             """, unsafe_allow_html=True)
             st.write(report.get("decision_rationale", "N/A"))
@@ -659,7 +656,7 @@ def _render_agent_page():
         col_reg, col_rai = st.columns(2)
 
         with col_reg:
-            st.markdown("#### 📚 Regulatory References")
+            st.markdown("#### Regulatory References")
             refs = report.get("regulatory_references", [])
             if refs:
                 for ref in refs:
@@ -667,18 +664,18 @@ def _render_agent_page():
             else:
                 st.write("No specific regulatory references cited.")
 
-            with st.expander("🔍 Retrieved Regulation Chunks"):
+            with st.expander("Retrieved Regulation Chunks"):
                 for i, chunk in enumerate(rag_context, 1):
                     st.markdown(f"**Source {i}: {chunk.get('source', 'Unknown')}** (score: {chunk.get('score', 0):.3f})")
                     st.write(chunk.get('text', '')[:300] + "…")
                     st.markdown("---")
 
         with col_rai:
-            st.markdown("#### 🤝 Responsible AI")
+            st.markdown("#### Responsible AI")
             st.info(report.get("responsible_ai_note", "This assessment adheres to fair lending principles."))
 
         st.markdown("---")
-        st.markdown("#### ⚠️ Legal Disclaimer")
+        st.markdown("#### Legal Disclaimer")
         st.markdown(
             f'<div class="disclaimer-box">{report.get("disclaimer", "This AI-generated assessment is for informational purposes only and does not constitute a final lending decision.")}</div>',
             unsafe_allow_html=True
@@ -785,7 +782,7 @@ def _render_architecture_page():
 def _render_report_page():
     st.title("Project Report")
     st.link_button(
-        "📂 View Report on Google Drive",
+        "View Report on Google Drive",
         "https://drive.google.com/file/d/1bKLeRReufK8u5oOO0q1BsBgFlvWmdSO2/view?usp=sharing",
         use_container_width=True
     )
